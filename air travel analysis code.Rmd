@@ -1,12 +1,12 @@
----
+-—
 title: 'Анализ проблем авиаперевозок'
-author: "Сафронова Анна, azsafronova"
+author: "Сафронова Анна"
 output: html_document
----
+-—
 
 ## Задача
 
-на основе данных (и выданных вопросов) постараться выяснить:
+на основе данных постараться выяснить:
 
 * какие проблемы есть в авиаперевозках
 * какие улучшения можно предложить на основе выводов по данным
@@ -20,25 +20,20 @@ output: html_document
 #lounge = get_hw1_lounge_df()
 #get_hw1_questions()
 ```
-\
-
-### Вопросы
 
 #### Вопрос 1
 
 **Вопрос:** Правда ли оценка мест для хранения выше, если перелет был в летнее время?
 
 **Данные:** для ответа на вопрос нужны таблицы Airline и Seat
-\
 
-***ШАГ №1*** *Проверим гипотезу о влиянии времени года на оценку мест хранения пассажиром, рассмотрев оценки на разных категориях авиакомпаний - топовых и не топовых*
+**ШАГ №1** *Проверим гипотезу о влиянии времени года на оценку мест хранения пассажиром, рассмотрев оценки на разных категориях авиакомпаний - топовых и не топовых*
 
 Условимся, что отзывы людей из датафрейма Airline на авиакомпанию отражают объективную картину ее крутости. Исходя из этого, составим список топовых авикакомпаний (с рейтингом >=8)
 
 
 ```{r echo = F, message = F, warning = F}
 # код для ответа на вопрос 1:
-
 library(RColorBrewer)
 library(stringr)
 library(data.table)
@@ -48,244 +43,204 @@ library(ggplot2)
 library(R3PO)
 seat = get_hw1_seat_df()
 airline = get_hw1_airline_df()
-
 #удаляем данные, которые нам не понадобятся в анализе
 seat = seat %>% select(-author_country, -link, -content, -type_traveller, -seat_legroom_rating, -seat_recline_rating, -seat_width_rating, -aisle_space_rating, -viewing_tv_rating, -power_supply_rating, -title, -recommended, -date, -overall_rating)
-
 #создаем в датафрейме колонку с временем года
 season = case_when(
-        month(seat$date_flown)>2 & month(seat$date_flown)<6 ~ 'spring',
-        month(seat$date_flown)>5 & month(seat$date_flown)<9 ~ 'summer',
-        month(seat$date_flown)>8 & month(seat$date_flown)<12 ~ 'autumn',
-        month(seat$date_flown)>11 | month(seat$date_flown)<3 ~ 'winter',
-                   TRUE ~ 'unknown') 
+month(seat$date_flown)>2 & month(seat$date_flown)<6 ~ 'spring',
+month(seat$date_flown)>5 & month(seat$date_flown)<9 ~ 'summer',
+month(seat$date_flown)>8 & month(seat$date_flown)<12 ~ 'autumn',
+month(seat$date_flown)>11 | month(seat$date_flown)<3 ~ 'winter',
+TRUE ~ 'unknown')
 seat = seat %>% mutate(season = season)
 #теперь датафрейм готов к работе
-
-#
-#
-#
-
-
 #1. ПРОВЕРИМ ГИПОТЕЗУ О ВЛИЯНИИ ВРЕМЕНИ ГОДА НА ОЦЕНКУ МЕСТ ХРАНЕНИЯ ПАССАЖИРОМ, РАССМОТРЕВ ОЦЕНКИ НА РАЗНЫХ КАТЕГОРИЯХ АВИАКОМПАНИЙ - ТОПОВЫХ И НЕ ТОПОВЫХ
-
 #добавим в "airline" колонку с сезоном
 #примем предположение о том, что указанный в "date" датафрейма "airline" месяц совпадает с месяцем полета клиента на самолете (и это скорее всего так, ведь отзывы пишутся незадолго после пользования услугами самолета), иначе невозможно будет анализировать датафреймы
 season = case_when(
-        month(airline$date)>2 & month(airline$date)<6 ~ 'spring',
-        month(airline$date)>5 & month(airline$date)<9 ~ 'summer',
-        month(airline$date)>8 & month(airline$date)<12 ~ 'autumn',
-        month(airline$date)>11 | month(airline$date)<3 ~ 'winter',
-                   TRUE ~ 'unknown') 
+month(airline$date)>2 & month(airline$date)<6 ~ 'spring',
+month(airline$date)>5 & month(airline$date)<9 ~ 'summer',
+month(airline$date)>8 & month(airline$date)<12 ~ 'autumn',
+month(airline$date)>11 | month(airline$date)<3 ~ 'winter',
+TRUE ~ 'unknown')
 airline = airline %>% mutate(season = season)
-
-
 #условимся, что отзывы людей из датафрейма "airline" на авиакомпанию отражают объективную картинку крутости компании, ведь другого рейтинга у нас нет; и составим список топовых авикакомпаний (компании с рейтингом >=6.5)
 airline = get_hw1_airline_df() %>% group_by(airline_name) %>% summarise(mean = mean(overall_rating)) %>% filter(mean>=6.5)
 airline = na.omit(airline)
-
 #теперь определим, какие авиакомпании в датафрейме "seat" являются топовыми, согласно этому списку
 top_rating_airline = case_when(
-        seat$airline_name == "aegean-airlines" ~ 'YES',
-        seat$airline_name == "aerogal-aerolineas-galapagos" ~ 'YES',
-        seat$airline_name == "air-astana" ~ 'YES',
-        seat$airline_name == "air-berlin" ~ 'YES',
-        seat$airline_name == "air-india" ~ 'YES',
-        seat$airline_name == "air-namibia" ~ 'YES',
-        seat$airline_name == "air-new-zealand" ~ 'YES',
-        seat$airline_name == "air-seychelles" ~ 'YES',
-        seat$airline_name == "airasia-x" ~ 'YES',
-        seat$airline_name == "alaska-airlines" ~ 'YES',
-        seat$airline_name == "american-eagle" ~ 'YES',
-        seat$airline_name == "ana-all-nippon-airways" ~ 'YES',
-        seat$airline_name == "asiana-airlines" ~ 'YES',
-        seat$airline_name == "asky-airlines" ~ 'YES',
-        seat$airline_name == "austrian-airlines" ~ 'YES',
-        seat$airline_name == "ba-cityflyer" ~ 'YES',
-        seat$airline_name == "bluexpress" ~ 'YES',
-        seat$airline_name == "bmi-british-midland-international" ~ 'YES',
-        seat$airline_name == "bmi-regional" ~ 'YES',
-        seat$airline_name == "brussels-airlines" ~ 'YES',
-        seat$airline_name == "cape-air" ~ 'YES',
-        seat$airline_name == "cathay-pacific-airways" ~ 'YES',
-        seat$airline_name == "cebu-pacific" ~ 'YES',
-        seat$airline_name == "china-airlines" ~ 'YES',
-        seat$airline_name == "china-eastern-airlines" ~ 'YES',
-        seat$airline_name == "china-southern-airlines" ~ 'YES',
-        seat$airline_name == "cityjet" ~ 'YES',
-        seat$airline_name == "comair" ~ 'YES',
-        seat$airline_name == "croatia-airlines" ~ 'YES',
-        seat$airline_name == "csa-czech-airlines" ~ 'YES',
-        seat$airline_name == "delta-air-lines" ~ 'YES',
-        seat$airline_name == "eritrean-airlines" ~ 'YES',
-        seat$airline_name == "estonian-air" ~ 'YES',
-        seat$airline_name == "etihad-airways" ~ 'YES',
-        seat$airline_name == "eva-air" ~ 'YES',
-        seat$airline_name == "fiji-airways" ~ 'YES',
-        seat$airline_name == "garuda-indonesia" ~ 'YES',
-        seat$airline_name == "hainan-airlines" ~ 'YES',
-        seat$airline_name == "hawaiian-airlines" ~ 'YES',
-        seat$airline_name == "icelandair" ~ 'YES',
-        seat$airline_name == "indigo-airlines" ~ 'YES',
-        seat$airline_name == "japan-airlines" ~ 'YES',
-        seat$airline_name == "jetstar-pacific" ~ 'YES',
-        seat$airline_name == "korean-air" ~ 'YES',
-        seat$airline_name == "lao-airlines" ~ 'YES',
-        seat$airline_name == "lufthansa" ~ 'YES',
-        seat$airline_name == "malaysia-airlines" ~ 'YES',
-        seat$airline_name == "mango" ~ 'YES',
-        seat$airline_name == "mea-middle-east-airlines" ~ 'YES',
-        seat$airline_name == "myanmar-airways" ~ 'YES',
-        seat$airline_name == "okay-airways" ~ 'YES',
-        seat$airline_name == "oman-air" ~ 'YES',
-        seat$airline_name == "onur-air" ~ 'YES',
-        seat$airline_name == "pegasus-airlines" ~ 'YES',
-        seat$airline_name == "pia-pakistan-international-airlines" ~ 'YES',
-        seat$airline_name == "royal-jordanian-airlines" ~ 'YES',
-        seat$airline_name == "s7-siberia-airlines" ~ 'YES',
-        seat$airline_name == "scoot" ~ 'YES',
-        seat$airline_name == "silkair" ~ 'YES',
-        seat$airline_name == "singapore-airlines" ~ 'YES',
-        seat$airline_name == "skywest-airlines" ~ 'YES',
-        seat$airline_name == "spicejet" ~ 'YES',
-        seat$airline_name == "srilankan-airlines" ~ 'YES',
-        seat$airline_name == "sriwijaya-air" ~ 'YES',
-        seat$airline_name == "sun-country-airlines" ~ 'YES',
-        seat$airline_name == "swiss-international-air-lines" ~ 'YES',
-        seat$airline_name == "thai-airways" ~ 'YES',
-        seat$airline_name == "thomas-cook-airlines-scandinavia" ~ 'YES',
-        seat$airline_name == "transasia-airways" ~ 'YES',
-        seat$airline_name == "ukraine-international-airlines" ~ 'YES',
-        seat$airline_name == "virgin-america" ~ 'YES',
-        seat$airline_name == "virgin-australia" ~ 'YES',
-        seat$airline_name == "volaris" ~ 'YES',
-        seat$airline_name == "vueling-airlines" ~ 'YES',
-        seat$airline_name == "wow-air" ~ 'YES',
-        seat$airline_name == "xiamen-airlines" ~ 'YES',
-        seat$airline_name == "xl-airways-france" ~ 'YES',   
-        TRUE ~ 'NO')
-
+seat$airline_name == "aegean-airlines" ~ 'YES',
+seat$airline_name == "aerogal-aerolineas-galapagos" ~ 'YES',
+seat$airline_name == "air-astana" ~ 'YES',
+seat$airline_name == "air-berlin" ~ 'YES',
+seat$airline_name == "air-india" ~ 'YES',
+seat$airline_name == "air-namibia" ~ 'YES',
+seat$airline_name == "air-new-zealand" ~ 'YES',
+seat$airline_name == "air-seychelles" ~ 'YES',
+seat$airline_name == "airasia-x" ~ 'YES',
+seat$airline_name == "alaska-airlines" ~ 'YES',
+seat$airline_name == "american-eagle" ~ 'YES',
+seat$airline_name == "ana-all-nippon-airways" ~ 'YES',
+seat$airline_name == "asiana-airlines" ~ 'YES',
+seat$airline_name == "asky-airlines" ~ 'YES',
+seat$airline_name == "austrian-airlines" ~ 'YES',
+seat$airline_name == "ba-cityflyer" ~ 'YES',
+seat$airline_name == "bluexpress" ~ 'YES',
+seat$airline_name == "bmi-british-midland-international" ~ 'YES',
+seat$airline_name == "bmi-regional" ~ 'YES',
+seat$airline_name == "brussels-airlines" ~ 'YES',
+seat$airline_name == "cape-air" ~ 'YES',
+seat$airline_name == "cathay-pacific-airways" ~ 'YES',
+seat$airline_name == "cebu-pacific" ~ 'YES',
+seat$airline_name == "china-airlines" ~ 'YES',
+seat$airline_name == "china-eastern-airlines" ~ 'YES',
+seat$airline_name == "china-southern-airlines" ~ 'YES',
+seat$airline_name == "cityjet" ~ 'YES',
+seat$airline_name == "comair" ~ 'YES',
+seat$airline_name == "croatia-airlines" ~ 'YES',
+seat$airline_name == "csa-czech-airlines" ~ 'YES',
+seat$airline_name == "delta-air-lines" ~ 'YES',
+seat$airline_name == "eritrean-airlines" ~ 'YES',
+seat$airline_name == "estonian-air" ~ 'YES',
+seat$airline_name == "etihad-airways" ~ 'YES',
+seat$airline_name == "eva-air" ~ 'YES',
+seat$airline_name == "fiji-airways" ~ 'YES',
+seat$airline_name == "garuda-indonesia" ~ 'YES',
+seat$airline_name == "hainan-airlines" ~ 'YES',
+seat$airline_name == "hawaiian-airlines" ~ 'YES',
+seat$airline_name == "icelandair" ~ 'YES',
+seat$airline_name == "indigo-airlines" ~ 'YES',
+seat$airline_name == "japan-airlines" ~ 'YES',
+seat$airline_name == "jetstar-pacific" ~ 'YES',
+seat$airline_name == "korean-air" ~ 'YES',
+seat$airline_name == "lao-airlines" ~ 'YES',
+seat$airline_name == "lufthansa" ~ 'YES',
+seat$airline_name == "malaysia-airlines" ~ 'YES',
+seat$airline_name == "mango" ~ 'YES',
+seat$airline_name == "mea-middle-east-airlines" ~ 'YES',
+seat$airline_name == "myanmar-airways" ~ 'YES',
+seat$airline_name == "okay-airways" ~ 'YES',
+seat$airline_name == "oman-air" ~ 'YES',
+seat$airline_name == "onur-air" ~ 'YES',
+seat$airline_name == "pegasus-airlines" ~ 'YES',
+seat$airline_name == "pia-pakistan-international-airlines" ~ 'YES',
+seat$airline_name == "royal-jordanian-airlines" ~ 'YES',
+seat$airline_name == "s7-siberia-airlines" ~ 'YES',
+seat$airline_name == "scoot" ~ 'YES',
+seat$airline_name == "silkair" ~ 'YES',
+seat$airline_name == "singapore-airlines" ~ 'YES',
+seat$airline_name == "skywest-airlines" ~ 'YES',
+seat$airline_name == "spicejet" ~ 'YES',
+seat$airline_name == "srilankan-airlines" ~ 'YES',
+seat$airline_name == "sriwijaya-air" ~ 'YES',
+seat$airline_name == "sun-country-airlines" ~ 'YES',
+seat$airline_name == "swiss-international-air-lines" ~ 'YES',
+seat$airline_name == "thai-airways" ~ 'YES',
+seat$airline_name == "thomas-cook-airlines-scandinavia" ~ 'YES',
+seat$airline_name == "transasia-airways" ~ 'YES',
+seat$airline_name == "ukraine-international-airlines" ~ 'YES',
+seat$airline_name == "virgin-america" ~ 'YES',
+seat$airline_name == "virgin-australia" ~ 'YES',
+seat$airline_name == "volaris" ~ 'YES',
+seat$airline_name == "vueling-airlines" ~ 'YES',
+seat$airline_name == "wow-air" ~ 'YES',
+seat$airline_name == "xiamen-airlines" ~ 'YES',
+seat$airline_name == "xl-airways-france" ~ 'YES',
+TRUE ~ 'NO')
 what_season = case_when(
-        seat$season == "summer" ~ 'summer',
-        TRUE ~ 'not summer')
-
+seat$season == "summer" ~ 'summer',
+TRUE ~ 'not summer')
 season_airline_correlation = data.frame(seat, top_rating_airline, what_season) %>% filter(seat_storage_rating > 0)
-
-airline_correlation = season_airline_correlation %>% group_by(top_rating_airline, what_season) %>% summarise(mean = seat_storage_rating) %>%  na.omit(airline_correlation) %>% summarise(mean = mean(mean))
-
-
-#как мы видим по данным, выборка не самая репрезентативная, т.к., по логике, оценки топовых компаний должны быть, вне зависимости от сезона, в целом, выше, чем оценки нетоповых компаний. 
+airline_correlation = season_airline_correlation %>% group_by(top_rating_airline, what_season) %>% summarise(mean = seat_storage_rating) %>% na.omit(airline_correlation) %>% summarise(mean = mean(mean))
+#как мы видим по данным, выборка не самая репрезентативная, т.к., по логике, оценки топовых компаний должны быть, вне зависимости от сезона, в целом, выше, чем оценки нетоповых компаний.
 #такая неточность произошла из-за того, что мы рассматривали авиакомпании в рейтингом >=6.5
 #попробуем теперь рассмотреть более топовые компании (рейтинг >=8) и сделать выводы
-
-
 airline = get_hw1_airline_df() %>% group_by(airline_name) %>% summarise(mean = mean(overall_rating)) %>% filter(mean>=8)
 airline = na.omit(airline)
-
 top_top_rating_airline = case_when(
-        seat$airline_name == "aegean-airlines"~ 'YES',
-        seat$airline_name == "air-astana"~ 'YES',
-        seat$airline_name == "air-namibia"~ 'YES',
-        seat$airline_name == "air-new-zealand"~ 'YES',
-        seat$airline_name == "air-seychelles"~ 'YES',
-        seat$airline_name == "airasia-x"~ 'YES',
-        seat$airline_name == "ana-all-nippon-airways"~ 'YES',
-        seat$airline_name == "asiana-airlines"~ 'YES',
-        seat$airline_name == "asky-airlines"~ 'YES',
-        seat$airline_name == "ba-cityflyer"~ 'YES',
-        seat$airline_name == "bluexpress"~ 'YES',
-        seat$airline_name == "bmi-british-midland-international"~ 'YES',
-        seat$airline_name == "bmi-regional"~ 'YES',
-        seat$airline_name == "cityjet"~ 'YES',
-        seat$airline_name == "comair"~ 'YES',
-        seat$airline_name == "croatia-airlines"~ 'YES',
-        seat$airline_name == "estonian-air"~ 'YES',
-        seat$airline_name == "eva-air"~ 'YES',
-        seat$airline_name == "fiji-airways"~ 'YES',
-        seat$airline_name == "garuda-indonesia"~ 'YES',
-        seat$airline_name == "hainan-airlines"~ 'YES',
-        seat$airline_name == "icelandair"~ 'YES',
-        seat$airline_name == "indigo-airlines"~ 'YES',
-        seat$airline_name == "japan-airlines"~ 'YES',
-        seat$airline_name == "jetstar-pacific"~ 'YES',
-        seat$airline_name == "korean-air"~ 'YES',
-        seat$airline_name == "lao-airlines"~ 'YES',
-        seat$airline_name == "mango"~ 'YES',
-        seat$airline_name == "mea-middle-east-airlines"~ 'YES',
-        seat$airline_name == "okay-airways"~ 'YES',
-        seat$airline_name == "onur-air"~ 'YES',
-        seat$airline_name == "royal-jordanian-airlines"~ 'YES',
-        seat$airline_name == "s7-siberia-airlines"~ 'YES',
-        seat$airline_name == "singapore-airlines"~ 'YES',
-        seat$airline_name == "skywest-airlines"~ 'YES',
-        seat$airline_name == "sriwijaya-air"~ 'YES',
-        seat$airline_name == "sun-country-airlines"~ 'YES',
-        seat$airline_name == "thai-airways"~ 'YES',
-        seat$airline_name == "transasia-airways"~ 'YES',
-        seat$airline_name == "volaris"~ 'YES',
-        seat$airline_name == "wow-air"~ 'YES',
-        seat$airline_name == "xl-airways-france" ~ 'YES',   
-        TRUE ~ 'NO')  
-
+seat$airline_name == "aegean-airlines"~ 'YES',
+seat$airline_name == "air-astana"~ 'YES',
+seat$airline_name == "air-namibia"~ 'YES',
+seat$airline_name == "air-new-zealand"~ 'YES',
+seat$airline_name == "air-seychelles"~ 'YES',
+seat$airline_name == "airasia-x"~ 'YES',
+seat$airline_name == "ana-all-nippon-airways"~ 'YES',
+seat$airline_name == "asiana-airlines"~ 'YES',
+seat$airline_name == "asky-airlines"~ 'YES',
+seat$airline_name == "ba-cityflyer"~ 'YES',
+seat$airline_name == "bluexpress"~ 'YES',
+seat$airline_name == "bmi-british-midland-international"~ 'YES',
+seat$airline_name == "bmi-regional"~ 'YES',
+seat$airline_name == "cityjet"~ 'YES',
+seat$airline_name == "comair"~ 'YES',
+seat$airline_name == "croatia-airlines"~ 'YES',
+seat$airline_name == "estonian-air"~ 'YES',
+seat$airline_name == "eva-air"~ 'YES',
+seat$airline_name == "fiji-airways"~ 'YES',
+seat$airline_name == "garuda-indonesia"~ 'YES',
+seat$airline_name == "hainan-airlines"~ 'YES',
+seat$airline_name == "icelandair"~ 'YES',
+seat$airline_name == "indigo-airlines"~ 'YES',
+seat$airline_name == "japan-airlines"~ 'YES',
+seat$airline_name == "jetstar-pacific"~ 'YES',
+seat$airline_name == "korean-air"~ 'YES',
+seat$airline_name == "lao-airlines"~ 'YES',
+seat$airline_name == "mango"~ 'YES',
+seat$airline_name == "mea-middle-east-airlines"~ 'YES',
+seat$airline_name == "okay-airways"~ 'YES',
+seat$airline_name == "onur-air"~ 'YES',
+seat$airline_name == "royal-jordanian-airlines"~ 'YES',
+seat$airline_name == "s7-siberia-airlines"~ 'YES',
+seat$airline_name == "singapore-airlines"~ 'YES',
+seat$airline_name == "skywest-airlines"~ 'YES',
+seat$airline_name == "sriwijaya-air"~ 'YES',
+seat$airline_name == "sun-country-airlines"~ 'YES',
+seat$airline_name == "thai-airways"~ 'YES',
+seat$airline_name == "transasia-airways"~ 'YES',
+seat$airline_name == "volaris"~ 'YES',
+seat$airline_name == "wow-air"~ 'YES',
+seat$airline_name == "xl-airways-france" ~ 'YES',
+TRUE ~ 'NO')
 what_season = case_when(
-        seat$season == "summer" ~ 'summer',
-        TRUE ~ 'not summer')
-
+seat$season == "summer" ~ 'summer',
+TRUE ~ 'not summer')
 season_airline_correlation = data.frame(seat, top_top_rating_airline, what_season) %>% filter(seat_storage_rating > 0)
-
-airline_correlation = season_airline_correlation %>% group_by(top_top_rating_airline, what_season) %>% summarise(mean = seat_storage_rating) %>%  na.omit(airline_correlation) %>% summarise(mean = mean(mean))
-
+airline_correlation = season_airline_correlation %>% group_by(top_top_rating_airline, what_season) %>% summarise(mean = seat_storage_rating) %>% na.omit(airline_correlation) %>% summarise(mean = mean(mean))
 #теперь данные очевидно лучше отражают ситуацию
-
-
 ## визуализация данных (так как все значения и названия в таблице у нас на английском, а отчет я делаю на русском, приходится вручную создавать колонки с названиями. вероятно, можно было бы найти переводящую функцию, но, поскольку у нас довольно мало значений, этого не потребовалось)
-
 rounded_airline = round((airline_correlation$mean), digits=1)
-
 airline_correlation_table = data.table('Топовая ли это авиакомпания?' = c('НЕТ', 'НЕТ', 'ДА', 'ДА'), 'Когда произошла поездка?' = c('не летом', 'летом', 'не летом', 'летом'), 'Средний рейтинг мест для хранения' = rounded_airline)
-
-
 ggplot(data = airline_correlation) + geom_bar(aes(x = what_season, y = mean, fill = top_top_rating_airline), position = 'dodge', size = 4, stat = 'identity') + ylab('средний рейтинг мест для хранения') + xlab('') + scale_x_discrete(labels = c('не лето', 'лето')) + scale_fill_brewer(name = 'Топовая ли это\nавиакомпания?', labels=c("Нет","Да"), palette = 'PuRd') + theme_light() + theme(axis.text.x = element_text(vjust = 8))
 ```
 
 ***Промежуточный вывод:*** В среднем, места для хранения в топовых и не топовых авиакомпаниях летом оценивают хуже, чем в другие сезоны. Отсюда можно предположить, что, действительно, сезон коррелирует с оценкой мест так, что лучшие оценки ставят не летом. Однако, чтобы не делать преждевременных выводов, убедимся в этом, рассмотрев другую категорию.
-\
-\
-***ШАГ №2*** *Проверим гипотезу о влиянии времени года на оценку мест хранения пассажиром, рассмотрев оценки на разных категориях типов кабин - топовых (бизнес-класс) и не топовых (эконом-класс)*
+
+
+**ШАГ №2** *Проверим гипотезу о влиянии времени года на оценку мест хранения пассажиром, рассмотрев оценки на разных категориях типов кабин - топовых (бизнес-класс) и не топовых (эконом-класс)*
 
 ```{r echo = F, message = F, warning = F}
-#2. ПРОВЕРИМ ГИПОТЕЗУ О ВЛИЯНИИ ВРЕМЕНИ ГОДА НА ОЦЕНКУ МЕСТ ХРАНЕНИЯ ПАССАЖИРОМ, РАССМОТРЕВ ОЦЕНКИ НА РАЗНЫХ КАТЕГОРИЯХ КАБИН - ТОПОВЫХ (БИЗНЕС-КЛАСС) И НЕ ТОПОВЫХ (ЭКОНОМ-КЛАСС)
-
+#2. ПРОВЕРИМ ГИПОТЕЗУ О ВЛИЯНИИ ВРЕМЕНИ ГОДА НА
+ОЦЕНКУ МЕСТ ХРАНЕНИЯ ПАССАЖИРОМ, РАССМОТРЕВ ОЦЕНКИ НА РАЗНЫХ КАТЕГОРИЯХ КАБИН - ТОПОВЫХ (БИЗНЕС-КЛАСС) И НЕ ТОПОВЫХ (ЭКОНОМ-КЛАСС)
 #(для определения топового типа кабины не обязательно анализировать датафреймы, достаточно бытового знания о том, что кабины бизнес-класса круче)
-
 top_rating_cabin = case_when(
-        seat$cabin_flown =='Premium Economy' ~ 'YES',
-        TRUE ~ 'NO')
-
+seat$cabin_flown =='Premium Economy' ~ 'YES',
+TRUE ~ 'NO')
 what_season = case_when(
-        seat$season == "summer" ~ 'summer',
-        TRUE ~ 'not summer')
-
-season_cabin_correlation = data.frame(seat, top_rating_cabin, what_season) 
-
+seat$season == "summer" ~ 'summer',
+TRUE ~ 'not summer')
+season_cabin_correlation = data.frame(seat, top_rating_cabin, what_season)
 cabin_correlation = season_cabin_correlation %>% group_by(top_rating_cabin, what_season) %>% summarise(mean = seat_storage_rating) %>% na.omit(cabin_correlation) %>% summarise(mean = mean(mean))
-
-
 #визуализация данных (так как все значения и названия в таблице у нас на английском, а отчет я делаю на русском, приходится вручную создавать колонки с названиями. вероятно, можно было бы найти переводящую функцию, но, поскольку у нас довольно мало значений, этого не потребовалось)
-
 rounded_cabin = round((cabin_correlation$mean), digits=1)
-
 cabin_correlation_table = data.table('Топовая ли это кабина (бизнес-класс)?' = c('НЕТ', 'НЕТ', 'ДА', 'ДА'), 'Когда произошла поездка?' = c('не летом', 'летом', 'не летом', 'летом'), 'Средний рейтинг мест для хранения' = rounded_cabin)
-
 ggplot(data = cabin_correlation) + geom_bar(aes(x = what_season, y = mean, fill = top_rating_cabin), position = 'dodge', size = 4, stat = 'identity') + ylab('средний рейтинг мест для хранения') + xlab('') + scale_x_discrete(labels = c('не лето', 'лето')) + scale_fill_brewer(name = 'Топовая ли\nэто кабина?', labels=c("Нет","Да"), palette = 'PuBuGn') + theme_light() + theme(axis.text.x = element_text(vjust = 8))
-
 ```
 
 ***Промежуточный вывод:*** В среднем, места для хранения в не топовых кабинах летом оценивают хуже, чем в другие сезоны. В топовых же кабинах оценка не зависит от времени года.
 
 **Ответ:** В целом, оценка мест для хранения ниже, если перелет был в летнее время.
 
-**Вывод:** Летом часто люди летят в отпуск с детьми, а, значит, везут с собой много вещей. Все вещи довольно трудно сложить в место хранения, поэтому ощущение тесноты выливается в низкую оценку места хранения. 
+**Вывод:** Летом часто люди летят в отпуск с детьми, а, значит, везут с собой много вещей. Все вещи довольно трудно сложить в место хранения, поэтому ощущение тесноты выливается в низкую оценку места хранения.
 В то же время, в бизнес-классе нет зависимости удовлетворенности местом хранения от времени года. Это может происходить либо потому, что в бизнес-классе летают люди, которые везут с собой мало вещей, либо потому, что в комфортрные отсеки для хранения в кабинах бизнес-класса с легкостью помещается все необходимое.
 
 Чтобы оценки мест хранения летом не были ниже оценок в другие времена года, стоит расширить зону места хранения вещей в эконом-классе.
@@ -298,60 +253,43 @@ ggplot(data = cabin_correlation) + geom_bar(aes(x = what_season, y = mean, fill 
 
 **Данные:** для ответа на вопрос нужна таблица Lounge
 
-***ШАГ №1*** *Создадим таблицу с названием стран и числом отзывов (а точнее, числом раз употребления в отрицательном отзыве слова "good") ее жителей, удовлетворяющих нашей задаче. Страны без подходящих нам отзывов нас не интересуют, поэтому колонка "количество отзывов" включает только числа >=1.*
+**ШАГ №1** *Создадим таблицу с названием стран и числом отзывов (а точнее, числом раз употребления в отрицательном отзыве слова "good") ее жителей, удовлетворяющих нашей задаче. Страны без подходящих нам отзывов нас не интересуют, поэтому колонка "количество отзывов" включает только числа >=1.*
 
 ```{r echo = F, message = F, warning = F}
 # код для ответа на вопрос 2:
 lounge = get_hw1_lounge_df()
-
 #удалим из датасета данные, которые нам не понадобятся
 lounge = lounge %>% select(-author, -link, -title, -lounge_name, -type_traveller, -overall_rating, -comfort_rating, -cleanliness_rating, -bar_beverages_rating, -catering_rating, -washrooms_rating, -wifi_connectivity_rating, -staff_service_rating, -date_visit, -date, -airline_name, -lounge_type, -airport)
-
 lounge = na.omit(lounge)
 #теперь датасет готов к работе
-
 #
 #
 #
-
 lounge = lounge %>% mutate(good_num = str_count(lounge$content, "good"), not_good_num = str_count(lounge$content, "not good"))
 lounge$only_good_num = lounge$good_num - lounge$not_good_num
-
-
 #создадим датафрейм только с тремя необходимыми колонками
-lounge_ready = data.frame(country = lounge$author_country, recommended = lounge$recommended, num = lounge$only_good_num)
-
+lounge_ready = data.frame(country = lounge$author_country, recommended =
+lounge$recommended, num = lounge$only_good_num)
 #определим, когда в целом пассажиры рекомендуют лаундж-зоны, а когда - нет
 analysis = case_when(
-        lounge_ready$recommended == 0 ~ 'suitable',
-        TRUE ~ 'droppable'
+lounge_ready$recommended == 0 ~ 'suitable',
+TRUE ~ 'droppable'
 )
-
 #создадим датафрейм, в котором пассажиры в целом не рекомендуют лаундж-зону, и посчитаем количество довольных отзывов (num = количество слов good, но не not good в отзыве)
 lounge_ready = lounge_ready %>% mutate(analysis) %>% filter(analysis == 'suitable')
-
-lounge_final = data.frame(country = lounge_ready$country, num = lounge_ready$num) %>% group_by(country) %>% summarise(num = sum(num)) %>% arrange(-num) 
-lounge_final1 = lounge_final %>% filter(num>=2) %>% arrange(-num) 
-
+lounge_final = data.frame(country = lounge_ready$country, num = lounge_ready$num) %>% group_by(country) %>% summarise(num = sum(num)) %>% arrange(-num)
+lounge_final1 = lounge_final %>% filter(num>=2) %>% arrange(-num)
 #визуализация данных (так как все значения и названия в таблице у нас на английском, а отчет я делаю на русском, приходится вручную создавать колонки с названиями. вероятно, можно было бы найти переводящую функцию, но, поскольку у нас довольно мало значений, этого не потребовалось)
-
-lounge_final2 = lounge_final %>% filter(num>=1) %>% arrange(-num) 
+lounge_final2 = lounge_final %>% filter(num>=1) %>% arrange(-num)
 lounge_final2 = data.table('Название страны' = c('Соединённое Королевство Великобритании и Северной Ирландии', 'Австралия', 'Казахстан', 'Гонконг', 'Новая Зеландия', 'Бразилия', 'Канада', 'Китай', 'Германия', 'Норвегия', 'Филиппины', 'Португалия', 'Сингапур', 'Южная Корея', 'Швейцария', 'Соединенные Штаты Америки'), 'Количество отзывов' = lounge_final2$num)
-
 knitr::kable(lounge_final2)
-
 ```
-\
 
-***ШАГ №2*** *Для наглядности графика выберем из таблицы только страны с наибольшим количеством подходящих нам отзывов*
+**ШАГ №2** *Для наглядности графика выберем из таблицы только страны с наибольшим количеством подходящих нам отзывов*
 
 ```{r echo = F, message = F, warning = F}
-
 ggplot(data = lounge_final1) + geom_bar(aes(x=reorder(country, -num), y = num), stat = 'identity', fill = 'mistyrose3', col = 'gray23') + xlab("") + ylab('Количество отзывов') + ggtitle('График упоминаний слова "хорошо" в отрицательных\nотзывах на лаундж-зоны аэропортов в разных странах') + theme_dark() + scale_x_discrete(labels = c('Соединенное Королевство', 'Австралия', 'Казахстан', 'Гонконг', 'Новая Зеландия')) + theme(axis.text.x = element_text(size = 7)) + theme(legend.position="none")
-
 ```
-
-\
 
 *Мы видим, что численно наибольшее число раз упоминают слово good в негативных комментариях респонденты из Соединенного Королевства, Австралии и Казахстана.*
 
@@ -359,55 +297,43 @@ ggplot(data = lounge_final1) + geom_bar(aes(x=reorder(country, -num), y = num), 
 
 Например, респонденты Соединенного Королевства 20 раз написали good в отрицательных отзывах на лаундж-зоны. Но много это или мало? Если респонденты из всех остальных стран меньше раз написали слово good, это может означать либо, что они менее довольны сервисом, либо, что их отрицательных отзывов просто численно меньше.
 
-\
-***ШАГ №3*** *Оформим данные о процентном соотношении людей, довольных чем-либо в отзывах на лаундж-зоны, и людей из этой же страны, недовольных ничем, в таблицу. При этом, укажем только страны, в которых % > 0, так как остальные не понадобятся нам в анализе.*
-\
+
+**ШАГ №3** *Оформим данные о процентном соотношении людей, довольных чем-либо в отзывах на лаундж-зоны, и людей из этой же страны, недовольных ничем, в таблицу. При этом, укажем только страны, в которых % > 0, так как остальные не понадобятся нам в анализе.*
+
 
 ```{r echo = F, message = F, warning = F}
 lounge2000 = lounge_ready = data.frame(country = lounge$author_country, recommended = lounge$recommended)
 lounge2000_analysis = case_when(
-        lounge_ready$recommended == 0 ~ 'suitable',
-        TRUE ~ 'droppable'
+lounge_ready$recommended == 0 ~ 'suitable',
+TRUE ~ 'droppable'
 )
 lounge2000_ready = lounge_ready %>% mutate(lounge2000_analysis) %>% filter(lounge2000_analysis == 'suitable')
-lounge2000_final = data.frame(country = lounge2000_ready$country, num = str_count(lounge2000_ready$recommended)) %>% group_by(country) %>% summarise(num = sum(num)) %>% filter(num>=1) %>% arrange(-num) 
-
-
+lounge2000_final = data.frame(country = lounge2000_ready$country, num = str_count(lounge2000_ready$recommended)) %>% group_by(country) %>% summarise(num = sum(num)) %>% filter(num>=1) %>% arrange(-num)
 a = left_join(lounge2000_final, lounge_final, by = 'country') %>% mutate(percent = 100*(lounge_final$num/lounge2000_final$num))
-
-
 r = ifelse(a$num.y > a$num.x, 'ATTENTION', 'fine')
 a$r = r
-
-
 l = case_when(
-        a$num.x == 0 ~ 'delete',
-        a$num.y == 0 ~ 'delete',
-        TRUE ~ 'leave'
+a$num.x == 0 ~ 'delete',
+a$num.y == 0 ~ 'delete',
+TRUE ~ 'leave'
 )
 a$l = l
-
 a = a %>% filter(a$l == 'leave') %>% arrange(-percent) %>% filter(percent > 0)
-
 rounded_percentage = round(a$percent, digits = 1)
-cool_per = str_c(rounded_percentage, '%')
+cool_per =
+str_c(rounded_percentage, '%')
 a = a %>% mutate(percentage = cool_per)
-
 percent_cool_table = data.frame(country = a$country, percent = a$percentage)
 percent_cool_table_final = data.table('Название страны' = c('Казахстан', 'Германия', 'Австралия', 'Соединенное Королевство', 'Новая Зеландия', 'Бразилия', 'Китай', 'Сингапур', 'Швейцария', 'Канада', 'Гонконг', 'США'), 'Процент людей, оставивших негативный отзыв со словом good, среди всех негативных отзывов из этой страны' = a$percentage)
-
 knitr::kable(percent_cool_table_final)
-
 ```
-\
 
-**Ответ:** Численно наибольшее количество отзывов, в которых не рекомендуют в целом лаундж-зоны, однако находят что-то хорошее в них, оставили респонденты из Соединенного Королевства (20 упоминаний слова good), Австралии (16 упоминаний слова good) и Казахстана (3 упоминания слова good). 
+**Ответ:** Численно наибольшее количество отзывов, в которых не рекомендуют в целом лаундж-зоны, однако находят что-то хорошее в них, оставили респонденты из Соединенного Королевства (20 упоминаний слова good), Австралии (16 упоминаний слова good) и Казахстана (3 упоминания слова good).
 В то же время, из всех стран, Казахстан, Германия и Австралия показывают наибольшую степень удовлетворенности среди всех своих негативных комментариев - 100%, 50% и 39% соответственно.
 
-**Вывод:** Для того, чтобы улучшить сервис, надо узнать, что конкретно заставляет людей не рекомендовать лаундж-зоны. 
+**Вывод:** Для того, чтобы улучшить сервис, надо узнать, что конкретно заставляет людей не рекомендовать лаундж-зоны.
 Однако стоит учитывать, что в принятии решений об изменении сервиса, ориентироваться на отзывы абсолютно недовольных людей очень дорого - так как очень дорого переделывать весь сервис целиком. Исправление же небольших проблем, которыми немного недовольны люди из Казахстана, Германии и Австралии - быстро и дешево, так что стоит начинать именно с этого.
 
-\
 
 #### Вопрос 3
 
@@ -419,48 +345,33 @@ knitr::kable(percent_cool_table_final)
 # код для ответа на вопрос 3:
 airport = get_hw1_airport_df()
 lounge = get_hw1_lounge_df()
-
-
 #сгруппируем аэропорты датасета "airport" по среднему рейтингу
 airport = data.frame(name = airport$airport_name, ratin = airport$terminal_cleanliness_rating)
 airport = na.omit(airport)
-
 airport = airport %>% group_by(name) %>% summarise(A_rate = mean(ratin))
 airport = na.omit(airport)
-
 #сгруппируем аэропорты датасета "lounge" по среднему рейтингу, приведя при этом их названия к виду названий в датасете "airport"
 lounge_airport = str_replace_all(lounge$airport,' ', '-')
 lounge = data.frame(name = str_to_lower(lounge_airport), ratin = lounge$cleanliness_rating, lounge_name = lounge$lounge_name)
 lounge = na.omit(lounge)
-
 lounge = lounge %>% group_by(name, lounge_name) %>% summarise(L_rate = mean(ratin))
-
 #объединим датасеты, чтобы провести анализ
 united_dataset = left_join(lounge, airport, by = 'name')
-
-
 #найдем те лаундж-зоны, рейтинг чистоты которых выше, чем рейтинг аэропортов, в которых они находятся
 a = case_when(
-        united_dataset$L_rate > united_dataset$A_rate ~ 'YES',
-        TRUE ~ 'NO'
+united_dataset$L_rate > united_dataset$A_rate ~ 'YES',
+TRUE ~ 'NO'
 )
-
-
 united_dataset$L_more_than_R = a
 united_dataset = united_dataset %>% filter(L_more_than_R == 'YES')
-
 #получим список лаундж-зон, рейтинг чистоты которых выше рейтинга аэропортов, в которых они находятся
 k = str_to_title(united_dataset$lounge_name)
 k = unique(k)
 a = data.table('Лаундж-зоны, рейтинг чистоты которых выше рейтинга аэропортов, в которых они находятся' = k)
-
 DT::datatable(a, options = list(
 bPaginate = TRUE
 ))
-
-
 ```
-\
 
 *Так как в одном аэропорту есть несколько лаундж-зон, на которые могут оставить подходящий нашему условию отзыв несколько людей из одной страны, учтем это в построении столбчатой диаграммы.*
 
@@ -471,36 +382,23 @@ bPaginate = TRUE
 ```{r echo = F, message = F, warning = F}
 #построение графика (для этого узнаем, в каких аэропортах чистоту лаундж-зон оценивают выше, чем сами аэропорты)
 united_dataset1 = data.frame(name = united_dataset$name, L_rate = united_dataset$L_rate, A_rate = united_dataset$A_rate)
-
 b = case_when(
-        united_dataset1$L_rate > united_dataset1$A_rate ~ 'YES',
-        TRUE ~ 'NO'
+united_dataset1$L_rate > united_dataset1$A_rate ~ 'YES',
+TRUE ~ 'NO'
 )
-
-
 united_dataset1$L_more_than_R = b
 united_dataset1 = united_dataset1 %>% filter(L_more_than_R == 'YES')
-
 frequency_of_a_name = str_count(united_dataset1$name)
-
 united_dataset1 = united_dataset1 %>% mutate(num = frequency_of_a_name) %>% group_by(name) %>% summarise(frequency_of_a_name = num)
-
 united_dataset1 <- united_dataset1[!duplicated(united_dataset1$name),]
-
 #выделим топ аэропортов по доле в них лаундж-зон, оценки чистоты которых выше оценок чистоты самого аэропорта
 united_dataset1 = united_dataset1 %>% filter(frequency_of_a_name >= 23)
-
-
 name = str_to_title(united_dataset1$name)
 name = str_replace_all(name, '-', ' ')
-final = data.frame('Название_аэропорта' = name, 'Количество_отзывов' = united_dataset1$frequency_of_a_name) 
-
+final = data.frame('Название_аэропорта' = name, 'Количество_отзывов' = united_dataset1$frequency_of_a_name)
 final = arrange(final, -Количество_отзывов)
 final = data.table(final)
-
-
 ggplot(data = final) + geom_bar(aes(x=reorder(Название_аэропорта, -Количество_отзывов), y = Количество_отзывов, width = 0.7), , fill = 'thistle', col = 'black', stat = 'identity') + xlab("") + ylab('Количество таких оценок') + ggtitle('Распределение аэропортов, в которых оценка чистоты\nлаундж-зон превышает оценку чистоты самого аэропорта') + theme_dark() + theme(axis.text.x = element_text(angle = 55, hjust = 1, size=7)) + scale_x_discrete(labels = c('Bangkok Suvarnabhumi', 'Sao Paulo Guarulhos', 'Amsterdam Schiphol', 'Atlanta Hartsfield', 'Brussels Zaventem', 'Klia Kuala Lumpur', 'Washington Dulles', 'Amman Queen Alia', 'Istanbul Ataturk', 'London Heathrow', 'Los Angeles Lax', 'Shanghai Pudong', 'Toronto Pearson')) + theme(axis.text.x = element_text(size = 8)) + theme(legend.position="none")
-
 ```
 
 **Ответ:** Всего есть 147 лаундж-зоны, более высоко оцененных по чистоте, чем аэропорты, в которых они расположены. Среди этих лаундж-зон: British Airways Terraces Business Class Lounge Review, Etihad Airways Al Reem (Ffp Member) Lounge Review, Etihad Airways Business Class Lounge Customer Review, Etihad Airways Business Class Lounge Review, Royal Jordanian Airlines Business Class Lounge Review и другие.
@@ -509,53 +407,7 @@ ggplot(data = final) + geom_bar(aes(x=reorder(Название_аэропорт�
 
 Значит, для улучшения сервиса, именно этим тринадцати аэропортам в первую очередь нужно озаботиться наведением чистоты везде, кроме лаундж-зон (ведь ими посетители в целом довольны).
 
-\
 
-### Дэшборд
-
-Полученные выводы обобщены в виде дэшборда со следующими элементами
-
-**Элемент 1:**
-\
-*вид:* График
-\
-*ответ на вопрос:* №3
-\
-*обоснование:* На графике очень наглядно показаны "грязные" аэропорты с наибольшим количеством "чистых" лаундж-зон. Данные можно легко и быстро интерпретировать, чтобы понять, какие аэропорты наиболее всего нуждаются в апгрейде в сфере чистоты.
- 
- 
-**Элемент 2:** 
-\
-*вид:* Число
-\
-*ответ на вопрос:* №3
-\
-*обоснование:* Общее количество лаундж-зон в датафрейме помогает 4му элементу дэшборда отразить критичность ситуации в сфере чистоты аэропортов.
-
- 
-**Элемент 3:** 
-\
-*вид:* Таблица
-\
-*ответ на вопрос:* №3
-\
-*обоснование:* Таблица показывает список лаундж-зон, рейтинг чистоты которых выше рейтинга чистоты аэропортов, в которых они находятся, тем самым представляя собой не то иное, как ответ на поставленный вопрос (вопрос №3).
-
- 
-**Элемент 4:** 
-\
-*вид:* Число
-\
-*ответ на вопрос:* №3
-\
-*обоснование:* Количество лаундж-зон, представленных таблицей (3им элементом дэшбэрда), в купе с общим количеством лаундж-зон датафрейма (2ым элементом дэшборда), показывает драматичность ситуации с чистотой в представленных графиком (1м элементом дэшборда) аэропортах. 
-
-
-
-***(примечание: в дэшборде рассматривается именно третий вопрос потому, что, на мой взгляд, он наиболее практичен, и, ответив на него, можно прийти к полезным заключениям, сформулировать реальные советы по улучшению сервиса)***
-
-\
-\
 
 ### Общие выводы
 
