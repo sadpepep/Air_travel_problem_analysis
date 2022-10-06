@@ -13,12 +13,12 @@ output: html_document
 
 
 ```{r echo = F, message = F, warning = F}
-#library(R3PO)
-#airline = get_hw1_airline_df()
-#airport = get_hw1_airport_df()
-#seat = get_hw1_seat_df()
-#lounge = get_hw1_lounge_df()
-#get_hw1_questions()
+library(R3PO)
+airline = get_hw1_airline_df()
+airport = get_hw1_airport_df()
+seat = get_hw1_seat_df()
+lounge = get_hw1_lounge_df()
+get_hw1_questions()
 ```
 
 #### Вопрос 1
@@ -43,8 +43,10 @@ library(ggplot2)
 library(R3PO)
 seat = get_hw1_seat_df()
 airline = get_hw1_airline_df()
+
 #удаляем данные, которые нам не понадобятся в анализе
 seat = seat %>% select(-author_country, -link, -content, -type_traveller, -seat_legroom_rating, -seat_recline_rating, -seat_width_rating, -aisle_space_rating, -viewing_tv_rating, -power_supply_rating, -title, -recommended, -date, -overall_rating)
+
 #создаем в датафрейме колонку с временем года
 season = case_when(
 month(seat$date_flown)>2 & month(seat$date_flown)<6 ~ 'spring',
@@ -54,9 +56,12 @@ month(seat$date_flown)>11 | month(seat$date_flown)<3 ~ 'winter',
 TRUE ~ 'unknown')
 seat = seat %>% mutate(season = season)
 #теперь датафрейм готов к работе
+
 #1. ПРОВЕРИМ ГИПОТЕЗУ О ВЛИЯНИИ ВРЕМЕНИ ГОДА НА ОЦЕНКУ МЕСТ ХРАНЕНИЯ ПАССАЖИРОМ, РАССМОТРЕВ ОЦЕНКИ НА РАЗНЫХ КАТЕГОРИЯХ АВИАКОМПАНИЙ - ТОПОВЫХ И НЕ ТОПОВЫХ
+
 #добавим в "airline" колонку с сезоном
 #примем предположение о том, что указанный в "date" датафрейма "airline" месяц совпадает с месяцем полета клиента на самолете (и это скорее всего так, ведь отзывы пишутся незадолго после пользования услугами самолета), иначе невозможно будет анализировать датафреймы
+
 season = case_when(
 month(airline$date)>2 & month(airline$date)<6 ~ 'spring',
 month(airline$date)>5 & month(airline$date)<9 ~ 'summer',
@@ -232,7 +237,6 @@ ggplot(data = airline_correlation) + geom_bar(aes(x = what_season, y = mean, fil
 ОЦЕНКУ МЕСТ ХРАНЕНИЯ ПАССАЖИРОМ, РАССМОТРЕВ ОЦЕНКИ НА РАЗНЫХ КАТЕГОРИЯХ КАБИН - ТОПОВЫХ (БИЗНЕС-КЛАСС) И НЕ ТОПОВЫХ (ЭКОНОМ-КЛАСС)
 
 #(для определения топового типа кабины не обязательно анализировать датафреймы, достаточно бытового знания о том, что кабины бизнес-класса круче)
-
 top_rating_cabin = case_when(
 seat$cabin_flown =='Premium Economy' ~ 'YES',
 TRUE ~ 'NO')
@@ -271,11 +275,12 @@ ggplot(data = cabin_correlation) + geom_bar(aes(x = what_season, y = mean, fill 
 ```{r echo = F, message = F, warning = F}
 # код для ответа на вопрос 2:
 lounge = get_hw1_lounge_df()
+
 #удалим из датасета данные, которые нам не понадобятся
 lounge = lounge %>% select(-author, -link, -title, -lounge_name, -type_traveller, -overall_rating, -comfort_rating, -cleanliness_rating, -bar_beverages_rating, -catering_rating, -washrooms_rating, -wifi_connectivity_rating, -staff_service_rating, -date_visit, -date, -airline_name, -lounge_type, -airport)
 lounge = na.omit(lounge)
+
 #теперь датасет готов к работе
-#
 #
 #
 lounge = lounge %>% mutate(good_num = str_count(lounge$content, "good"), not_good_num = str_count(lounge$content, "not good"))
@@ -288,10 +293,12 @@ analysis = case_when(
 lounge_ready$recommended == 0 ~ 'suitable',
 TRUE ~ 'droppable'
 )
+
 #создадим датафрейм, в котором пассажиры в целом не рекомендуют лаундж-зону, и посчитаем количество довольных отзывов (num = количество слов good, но не not good в отзыве)
 lounge_ready = lounge_ready %>% mutate(analysis) %>% filter(analysis == 'suitable')
 lounge_final = data.frame(country = lounge_ready$country, num = lounge_ready$num) %>% group_by(country) %>% summarise(num = sum(num)) %>% arrange(-num)
 lounge_final1 = lounge_final %>% filter(num>=2) %>% arrange(-num)
+
 #визуализация данных (так как все значения и названия в таблице у нас на английском, а отчет я делаю на русском, приходится вручную создавать колонки с названиями. вероятно, можно было бы найти переводящую функцию, но, поскольку у нас довольно мало значений, этого не потребовалось)
 lounge_final2 = lounge_final %>% filter(num>=1) %>% arrange(-num)
 lounge_final2 = data.table('Название страны' = c('Соединённое Королевство Великобритании и Северной Ирландии', 'Австралия', 'Казахстан', 'Гонконг', 'Новая Зеландия', 'Бразилия', 'Канада', 'Китай', 'Германия', 'Норвегия', 'Филиппины', 'Португалия', 'Сингапур', 'Южная Корея', 'Швейцария', 'Соединенные Штаты Америки'), 'Количество отзывов' = lounge_final2$num)
