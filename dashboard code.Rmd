@@ -1,0 +1,128 @@
+---
+title: "<Ваше название>"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    vertical_layout: fill
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+
+# загрузка данных, предобработка 
+```
+
+Column {data-width=500}
+-----------------------------------------------------------------------
+
+### **График аэропортов, в которых оценка чистоты лаундж-зон превышает оценку чистоты самого аэропорта**
+
+```{r}
+# самый важный график или таблица
+
+library(data.table)
+library(lubridate)
+library(dplyr)
+library(ggplot2)
+library(R3PO)
+library(stringr)
+airport = get_hw1_airport_df()
+lounge = get_hw1_lounge_df()
+
+
+airport = data.frame(name = airport$airport_name, ratin = airport$terminal_cleanliness_rating)
+airport = na.omit(airport)
+
+airport = airport %>% group_by(name) %>% summarise(A_rate = mean(ratin))
+airport = na.omit(airport)
+
+
+lounge_airport = str_replace_all(lounge$airport,' ', '-')
+lounge = data.frame(name = str_to_lower(lounge_airport), ratin = lounge$cleanliness_rating, lounge_name = lounge$lounge_name)
+lounge = na.omit(lounge)
+
+lounge = lounge %>% group_by(name, lounge_name) %>% summarise(L_rate = mean(ratin))
+
+
+united_dataset = left_join(lounge, airport, by = 'name')
+
+
+a = case_when(
+        united_dataset$L_rate > united_dataset$A_rate ~ 'YES',
+        TRUE ~ 'NO'
+)
+
+
+united_dataset$L_more_than_R = a
+united_dataset = united_dataset %>% filter(L_more_than_R == 'YES')
+
+
+k = str_to_title(united_dataset$lounge_name)
+k = unique(k)
+
+a = data.table('Список лаудж-зон' = k)
+
+
+united_dataset1 = data.frame(name = united_dataset$name, L_rate = united_dataset$L_rate, A_rate = united_dataset$A_rate)
+
+b = case_when(
+        united_dataset1$L_rate > united_dataset1$A_rate ~ 'YES',
+        TRUE ~ 'NO'
+)
+
+
+united_dataset1$L_more_than_R = b
+united_dataset1 = united_dataset1 %>% filter(L_more_than_R == 'YES')
+
+frequency_of_a_name = str_count(united_dataset1$name)
+
+united_dataset1 = united_dataset1 %>% mutate(num = frequency_of_a_name) %>% group_by(name) %>% summarise(frequency_of_a_name = num)
+
+united_dataset1 <- united_dataset1[!duplicated(united_dataset1$name),]
+
+united_dataset1 = united_dataset1 %>% filter(frequency_of_a_name >= 23)
+
+
+name = str_to_title(united_dataset1$name)
+name = str_replace_all(name, '-', ' ')
+final = data.frame('Название_аэропорта' = name, 'Количество_отзывов' = united_dataset1$frequency_of_a_name) 
+
+final = arrange(final, -Количество_отзывов)
+final = data.table(final)
+
+
+ggplot(data = final) + geom_bar(aes(x=reorder(Название_аэропорта, -Количество_отзывов), y = Количество_отзывов, width = 0.7), , fill = 'cornflowerblue', col = 'black', stat = 'identity') + xlab("") + ylab('Количество таких оценок') + theme_light() + theme(axis.text.x = element_text(angle = 65, hjust = 1, size=7)) + scale_x_discrete(labels = c('Bangkok Suvarnabhumi', 'Sao Paulo Guarulhos', 'Amsterdam Schiphol', 'Atlanta Hartsfield', 'Brussels Zaventem', 'Klia Kuala Lumpur', 'Washington Dulles', 'Amman Queen Alia', 'Istanbul Ataturk', 'London Heathrow', 'Los Angeles Lax', 'Shanghai Pudong', 'Toronto Pearson')) + theme(axis.text.x = element_text(size = 8)) + theme(legend.position="none") + theme(axis.title.y = element_text(size=8)) + xlab('Название аэропорта') + theme(axis.title.x = element_text(size=8))
+```
+
+Column {data-width=500, data-height=50}
+-----------------------------------------------------------------------
+
+### Общее количество лаундж-зон в датафрейме
+
+```{r}
+
+number_all = str_count(unique(lounge$lounge_name))
+lll = length(number_all)
+
+valueBox(lll, icon = 'fa-hand-peace')
+```
+
+### **Лаундж-зоны, рейтинг чистоты которых выше рейтинга чистоты аэропортов, в которых они находятся**
+
+```{r}
+# график или таблица
+
+
+DT::datatable(a, options = list(
+bPaginate = TRUE
+))
+
+```
+
+### Количество лаундж-зон, подходящих по критериям
+
+```{r}
+length = length(str_count(k))
+
+valueBox(length, icon = 'fa-broom')
+```
